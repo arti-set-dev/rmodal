@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
 	<meta charset="UTF-8">
@@ -10,35 +10,19 @@
 </head>
 
 <body class="body">
-	<button type="button" data-openmodal="first-modal" data-speed="1000" class="open">Модальное окно 1</button>
-	<button type="button" data-openmodal="middle-modal" data-speed="600" class="open">Модальное окно 2</button>
-	<button type="button" data-openmodal="last-modal" data-speed="500" class="open">Модальное окно 3</button>
-	<div class="modal">
-		<div class="modal__window" data-modal="first-modal">
-			<div class="modal__head">
-				<h2>Модальное окно 1</h2>
-				<button type="button" class="close-btn">Закрыть</button>
-			</div>
-			<button type="button" data-openmodal="middle-modal" data-speed="1000" class="open">Модальное окно 2</button>
-		</div>
-		<div class="modal__window" data-modal="middle-modal">
-			<div class="modal__head">
-				<h2>Модальное окно 2</h2>
-				<button type="button" class="close-btn">Закрыть</button>
-			</div>
-			<button type="button" data-openmodal="last-modal" data-speed="1000" class="open">Модальное окно 3</button>
-		</div>
-		<div class="modal__window" data-modal="last-modal">
-			<div class="modal__head">
-				<h2>Модальное окно 3</h2>
-				<button type="button" class="close-btn">Закрыть</button>
-			</div>
-			<button type="button" data-openmodal="first-modal" data-speed="500" class="open">Модальное окно 1</button>
-		</div>
+	<div class="container">
+		<button type="button" class="btn" data-modal="first-modal" data-modal-speed="400">Модальное окно 1</button>
+		<button type="button" class="btn" data-modal="middle-modal">Модальное окно 2</button>
+		<button type="button" class="btn" data-modal="last-modal" data-modal-speed="700">Модальное окно 3</button>
+	</div>
+	<div class="modal" data-modal-overlay>
+		<div class="modal-window" data-modal-target="first-modal"></div>
+		<div class="modal-window" data-modal-target="middle-modal"></div>
+		<div class="modal-window" data-modal-target="last-modal"></div>
 	</div>
 	<script src="../dist/rmodal.min.js"></script>
 	<script>
-		const modal = new Rmodal('.modal');
+		const modal = new Rmodal('[data-modal]');
 	</script>
 </body>
 

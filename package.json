@@ -1,6 +1,6 @@
 {
-  "name": "rmodal",
-  "version": "1.0.0",
+  "name": "set-rmodal",
+  "version": "1.0.1",
   "description": "Simple JS Library for modal",
   "main": "src/rmodal.js",
   "repository": {

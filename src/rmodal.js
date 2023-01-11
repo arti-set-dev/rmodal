@@ -3,195 +3,220 @@ export default class Rmodal {
     let defaultOptions = {
       isOpen: () => { },
       isClose: () => { },
+
+      defaultSpeed: 300,
+      autoFocusToCloseBtn: false,
+
+      modalOverlayName: 'data-modal-overlay',
+      modalWindowName: 'data-modal-target',
+      modalWindowSpeedName: 'data-modal-speed',
+      modalCloseBtnName: 'data-modal-close',
+      autoOpenName: 'data-auto-open',
+      modalOverlayBlockName: 'show',
+      disableScrollName: 'dis-scroll',
+      modalWindowBlockName: 'block',
+      modalWindowShowName: 'show',
     };
 
     this.options = Object.assign(defaultOptions, options);
-    this.modal = document.querySelector(selector);
+    this.btns = document.querySelectorAll(selector);
 
-    if (this.modal) {
-      this.body = document.body;
-      this.currModalWindow = false;
-      this.modalOpened = false;
-      this.currModalWindow = false;
-      this.previusFocusElement = false;
-      this.modalActive = false;
-      this.focusElements = [
-        'a[href]',
-        'input',
-        'button',
-        'select',
-        'textarea',
-        '[tabindex]'
-      ]
-    }
+    this.modalOpened = false;
+    this.speed = null;
+
+    this.modalOverlay = document.querySelector(`[${this.options.modalOverlayName}]`);
+    this.window = null;
+    this.modalCloseBtn = null;
+    this.modalFocusElems = null;
+    this.previusFocusElem = null;
+    this.documentFocusElems = null;
+    this.previusActiveWindow = null;
+
+    this.focusElems = [
+      'a[href]',
+      'input',
+      'button',
+      'select',
+      'textarea',
+      '[tabindex]'
+    ]
 
     this.events();
   }
 
   events() {
-    document.addEventListener('click', (e) => {
-      if (this.modal) {
-        const btnOpenModal = e.target.closest('[data-openmodal]');
-        if (btnOpenModal) {
-          this.options.speed = e.target.dataset.speed;
-          const getDataBtn = e.target.dataset.openmodal;
-          this.currModalWindow = this.modal.querySelector(`[data-modal="${getDataBtn}"]`);
-          // функция срабатывает один раз в определённое время, равное времени анимации
-          if (new Date().getTime() - this.lastClick < this.options.speed) return;
-          this.lastClick = new Date().getTime();
-          // модальное окно открывается
-          this.openModal(this.currModalWindow);
-        }
-        const btnCloseModal = e.target.closest('.close-btn');
-        if (e.target == this.modal || btnCloseModal) {
-          // модальное окно закрывается
-          if (new Date().getTime() - this.lastClick < this.options.speed) return;
-          this.lastClick = new Date().getTime();
-          this.closeModal(this.currModalWindow);
-        }
+    document.addEventListener('DOMContentLoaded', () => {
+      if (this.btns.length > 0) {
+        this.btns.forEach(btnEl => {
+          document.addEventListener('click', (e) => {
+            if (e.target == btnEl) {
+              this.getDataPath(btnEl);
+
+              if (!this.modalOpened) {
+                if (new Date().getTime() - this.lastClick < this.speed) return;
+                this.lastClick = new Date().getTime();
+                this.openModal(this.window);
+                e.preventDefault();
+              }
+
+              if (this.modalOpened) {
+                if (new Date().getTime() - this.lastClick < this.speed) return;
+                this.lastClick = new Date().getTime();
+                this.previusActiveWindow = document.querySelector(`.${this.options.modalWindowBlockName}.${this.options.modalWindowShowName}`);
+                if (this.previusActiveWindow != this.window) {
+                  this.reOpenModal(this.previusActiveWindow, this.window);
+                }
+              }
+            }
+
+            if (e.target == this.modalCloseBtn || e.target == this.modalOverlay) {
+              if (new Date().getTime() - this.lastClick < this.speed) return;
+              this.lastClick = new Date().getTime();
+              if (this.modalOpened) {
+                this.closeModal(this.window);
+                e.preventDefault();
+              }
+            }
+          })
+        })
+
+        document.addEventListener('keydown', (e) => {
+          if (this.modalOpened) {
+            if (e.code === 'Tab') {
+              this.focusInModal(e);
+            }
+
+            if (e.code === 'Escape') {
+              if (new Date().getTime() - this.lastClick < this.speed) return;
+              this.lastClick = new Date().getTime();
+              this.closeModal(this.window);
+              e.preventDefault();
+            }
+          }
+        })
       }
     })
-
-    document.addEventListener('keydown', (e) => {
-      if (this.modal) {
-        if (e.keyCode == 27) {
-          // модальное окно закрывается по клавише "esc"
-          if (new Date().getTime() - this.lastClick < this.options.speed) return;
-          this.lastClick = new Date().getTime();
-          this.closeModal(this.currModalWindow);
-        }
-        if (e.keyCode == 9) {
-          // если модальное окно открыто, то tabindex работает только внутри модального окна
-          this.tabIndexInModal(e);
-        }
-      }
-    })
   }
 
-  openModal(modalWindowElem) {
-    if (!this.modalOpened) {
-      this.tabIndexOff();
-      this.blockScroll();
-      this.modal.style.setProperty('--transition-time', `${this.options.speed / 1000}s`);
-      this.modal.classList.add('show');
-      modalWindowElem.classList.add('in-block');
-      setTimeout(() => {
-        modalWindowElem.classList.add('show');
-      });
-      this.previusFocusElement = document.activeElement;
-      setTimeout(() => {
-        this.modalOpened = true;
-        // console.log('modalOpened', modalOpened)
-        this.focusInModal();
-        this.tabIndexOn();
-      }, this.options.speed);
-    }
-    this.modalActive = this.modal.querySelector('.in-block.show');
-    if (this.modalOpened && this.modalActive) {
-      this.reOpenModal(modalWindowElem);
-    }
-  }
+  getDataPath(btnEl) {
+    const getDataTarget = btnEl.dataset.modal;
+    this.window = document.querySelector(`[${this.options.modalWindowName}="${getDataTarget}"]`);
+    this.modalCloseBtn = this.window.querySelector(`[${this.options.modalCloseBtnName}]`);
 
-  reOpenModal(modalWindowElem) {
-    this.modalOpened = false;
-    // console.log('modalOpened', modalOpened)
-    setTimeout(() => {
-      this.modalActive.classList.remove('in-block');
-      this.modalOpened = true;
-      // console.log('modalOpened', modalOpened)
-    }, this.options.speed);
-    this.modalActive.classList.remove('show');
-    if (!this.modalOpened) {
-      modalWindowElem.style.position = 'absolute';
-      modalWindowElem.classList.add('in-block');
-      setTimeout(() => {
-        modalWindowElem.removeAttribute('style');
-        modalWindowElem.classList.add('show');
-        setTimeout(() => {
-          this.focusInModal();
-        }, this.options.speed);
-      }, this.options.speed);
-    }
-  }
-
-  closeModal(modalWindowElem) {
-    if (this.modalOpened) {
-      this.modal.classList.remove('show');
-      setTimeout(() => {
-        modalWindowElem.classList.remove('in-block');
-      }, this.options.speed);
-      modalWindowElem.classList.remove('show');
-      this.modalOpened = false;
-      // console.log('modalOpened', modalOpened)
-      this.focusInModal();
-      setTimeout(() => {
-        this.unlockScoll();
-      }, this.options.speed);
-    }
-  }
-
-  focusInModal() {
-    // по открытию модального окна фокус перемещается на первый фокусируемый элемент модального окна
-    if (this.modalOpened) {
-      const focusToModal = this.currModalWindow.querySelectorAll(this.focusElements);
-      focusToModal[0].focus();
+    if (btnEl.hasAttribute(`${this.options.modalWindowSpeedName}`)) {
+      this.speed = btnEl.dataset.modalSpeed;
     } else {
+      this.speed = this.options.defaultSpeed;
+    }
+  }
+
+  openModal(windowEl) {
+    this.previusFocusElem = document.activeElement;
+    this.documentFocusElems = document.querySelectorAll(this.focusElems);
+    this.navigationOff(this.documentFocusElems);
+    this.focusToModal(windowEl);
+    this.disableScroll();
+    this.modalOverlay.classList.add(this.options.modalOverlayBlockName);
+    this.modalOverlay.style.setProperty('--transition-modal-time', `${this.speed / 1000}s`);
+    windowEl.classList.add(this.options.modalWindowBlockName);
+    setTimeout(() => {
+      windowEl.classList.add(this.options.modalWindowShowName);
+    });
+    setTimeout(() => {
+      this.modalOpened = true;
+      this.navigationOn(this.documentFocusElems);
+    }, this.speed);
+    this.options.isOpen(this);
+  }
+
+  closeModal(windowEl) {
+    this.focusToBtn();
+    this.modalOverlay.classList.remove(this.options.modalOverlayBlockName);
+    windowEl.classList.remove(this.options.modalWindowShowName);
+    setTimeout(() => {
+      this.modalOverlay.removeAttribute('style');
+      windowEl.classList.remove(this.options.modalWindowBlockName);
+      this.modalOpened = false;
+      this.enableScroll();
+      this.navigationOn(this.documentFocusElems);
+    }, this.speed);
+    this.options.isClose(this);
+  }
+
+  focusToModal(windowEl) {
+    this.modalFocusElems = Array.from(windowEl.querySelectorAll(this.focusElems));
+    if (!this.modalCloseBtn && this.options.autoFocusToCloseBtn || !this.options.autoFocusToCloseBtn && this.modalFocusElems.length > 0) {
       setTimeout(() => {
-        // если окно закрыто, то фокус перемешается на предыдущий фокусируемый элемент (на кнопку открытия модального окна)
-        this.previusFocusElement.focus();
-      }, this.options.speed);
+        this.modalFocusElems[0].focus();
+      }, this.speed);
+    }
+
+    if (this.modalCloseBtn && this.options.autoFocusToCloseBtn) {
+      setTimeout(() => {
+        this.modalCloseBtn.focus();
+      }, this.speed);
     }
   }
 
-  tabIndexOff() {
-    // во аремя анимации появления модального окна отключается возможность управлять страцницей клавишей "Tab"
-    const focusDocumentElements = document.querySelectorAll(this.focusElements);
-    focusDocumentElements.forEach((focusEl) => {
-      focusEl.tabIndex = -1;
-    })
+  focusToBtn() {
+    setTimeout(() => {
+      this.previusFocusElem.focus();
+    }, this.speed);
   }
 
-  tabIndexOn() {
-    // когда модальное окно открыто - tabindex включается
-    const focusDocumentElements = document.querySelectorAll(this.focusElements);
-    focusDocumentElements.forEach((focusEl) => {
-      focusEl.removeAttribute('tabIndex');
-    })
-  }
+  focusInModal(e) {
+    const focusArray = Array.prototype.slice.call(this.modalFocusElems);
+    const focusedIndex = focusArray.indexOf(document.activeElement);
+    if (!e.shiftKey && focusedIndex === focusArray.length - 1 && focusArray.length > 0) {
+      this.modalFocusElems[0].focus();
+      e.preventDefault();
+    }
 
-  tabIndexInModal(e) {
-    if (this.modalOpened) {
-      // если модальное окно открыто, то tabindex работает только внутри модального окна
-      const focusToModal = this.currModalWindow.querySelectorAll(this.focusElements);
-      const focusArray = Array.prototype.slice.call(focusToModal);
-      const focusedIndex = focusArray.indexOf(document.activeElement);
-      if (e.shiftKey && focusedIndex === 0) {
-        focusArray[focusArray.length - 1].focus();
-        e.preventDefault();
-      }
-      if (!e.shiftKey && focusedIndex === focusArray.length - 1) {
-        focusArray[0].focus();
-        e.preventDefault();
-      }
+    if (focusArray.length === 0) {
+      this.navigationOff(this.documentFocusElems);
+    }
+
+    if (e.shiftKey && focusedIndex === 0) {
+      this.modalFocusElems[this.modalFocusElems.length - 1].focus();
+      e.preventDefault();
     }
   }
 
-  blockScroll() {
-    let scrollWidth = window.innerWidth - this.body.offsetWidth + 'px';
-    this.body.style.paddingRight = scrollWidth;
-    // хак для айфонов, чтобы работал "overflow hidden" и не было прыжка страницы
+  navigationOn(documentFocusElems) {
+    documentFocusElems.forEach(documentFocusEl => {
+      documentFocusEl.removeAttribute('tabIndex');
+    })
+  }
+
+  navigationOff(documentFocusElems) {
+    documentFocusElems.forEach(documentFocusEl => {
+      documentFocusEl.tabIndex = -1;
+    })
+  }
+
+  disableScroll() {
+    let scrollWidth = window.innerWidth - document.body.offsetWidth + 'px';
+    document.body.style.paddingRight = scrollWidth;
     let pagePosition = window.scrollY;
-    this.body.classList.add('block-scroll');
-    this.body.dataset.position = pagePosition;
-    this.body.style.top = -pagePosition + 'px';
+    document.body.classList.add(this.options.disableScrollName);
+    document.body.dataset.position = pagePosition;
+    document.body.style.top = -pagePosition + 'px';
   }
 
-  unlockScoll() {
-    this.body.classList.remove('dis-scroll');
-    this.body.removeAttribute('style');
-    // хак для айфонов, чтобы работал "overflow hidden" и не было прыжка страницы
-    let pagePosition = parseInt(this.body.dataset.position, 10);
+  enableScroll() {
+    document.body.classList.remove(this.options.disableScrollName);
+    document.body.removeAttribute('style');
+    let pagePosition = parseInt(document.body.dataset.position, 10);
     window.scroll({ top: pagePosition, left: 0 });
-    this.body.removeAttribute('data-position');
+    document.body.removeAttribute('data-position');
+  }
+
+  reOpenModal(previusActiveWindowEl, windowEl) {
+    previusActiveWindowEl.classList.remove(this.options.modalWindowShowName);
+    setTimeout(() => {
+      this.enableScroll();
+      previusActiveWindowEl.classList.remove(this.options.modalWindowBlockName);
+      this.openModal(windowEl);
+    }, this.speed);
   }
 }
